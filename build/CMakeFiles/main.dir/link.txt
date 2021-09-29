@@ -1,0 +1,1 @@
+/opt/llvm/bin/clang++ -g CMakeFiles/main.dir/src/main.cpp.o -o main  -Wl,-rpath,/opt/openmpi/lib:/mnt/csc4005/HW/csc4005-assignment-1/build /opt/openmpi/lib/libmpi.so libodd-even-sort.so 

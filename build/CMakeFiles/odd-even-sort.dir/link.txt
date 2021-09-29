@@ -1,0 +1,1 @@
+/opt/llvm/bin/clang++ -fPIC -g -shared -Wl,-soname,libodd-even-sort.so -o libodd-even-sort.so CMakeFiles/odd-even-sort.dir/src/odd-even-sort.cpp.o  -Wl,-rpath,/opt/openmpi/lib /opt/openmpi/lib/libmpi.so 

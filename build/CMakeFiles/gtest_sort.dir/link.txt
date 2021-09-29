@@ -1,0 +1,1 @@
+/opt/llvm/bin/clang++ -g CMakeFiles/gtest_sort.dir/src/tests.cpp.o -o gtest_sort  -Wl,-rpath,/opt/openmpi/lib:/mnt/csc4005/HW/csc4005-assignment-1/build /opt/openmpi/lib/libmpi.so lib/libgtestd.a libodd-even-sort.so -lpthread 
