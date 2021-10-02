@@ -15,9 +15,10 @@ TEST(OddEvenSort, Basic) {
         std::vector<std::vector<Element>> data{
                 // {-1},
                 // {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+                
                 {7, 6, 5, 4, 3, 2, 1, 0, -1, -2},
                 // {1, 43, 1245, 41235246, 12, 123123, -123, 0},
-                // std::vector<Element>(1024, 123)
+                std::vector<Element>(1024, 123)
         };
         cases = data.size();
         MPI_Bcast(&cases, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);

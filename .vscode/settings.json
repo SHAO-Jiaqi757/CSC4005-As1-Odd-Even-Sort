@@ -76,6 +76,10 @@
         "unordered_set": "cpp",
         "utility": "cpp",
         "variant": "cpp",
-        "*.tcc": "cpp"
-    }
+        "*.tcc": "cpp",
+        "__functional_03": "cpp",
+        "filesystem": "cpp"
+    },
+    "files.autoSave": "onFocusChange",
+    "C_Cpp.autocompleteAddParentheses": true
 }
