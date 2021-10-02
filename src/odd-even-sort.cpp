@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 
+// #define _TEST
+
 namespace sort
 {
     using namespace std::chrono;
@@ -88,12 +90,7 @@ namespace sort
 
         return p;
     }
-    void swap(std::vector<Element> &target, int a, int b)
-    {
-        Element tmp = target[a];
-        target[a] = target[b];
-        target[b] = tmp;
-    }
+
     void local_odd_even_sort(std::vector<Element> &target, int size)
     {
 
@@ -106,7 +103,8 @@ namespace sort
                 {
                     // swap target[i-1] with target[i]
                     // swap(target, i, i - 1);
-                    std::swap(target[i-1],target[i]);
+                    if (target[i-1] > target[i])
+                        std::swap(target[i - 1], target[i]);
                 }
             }
             else
@@ -114,7 +112,8 @@ namespace sort
                 for (int i = 2; i < size; i += 2)
                 {
                     // swap(target, i, i - 1);
-                    std::swap(target[i-1],target[i]);
+                    if (target[i-1] > target[i])
+                        std::swap(target[i - 1], target[i]);
                 }
             }
         }
@@ -124,9 +123,9 @@ namespace sort
     std::unique_ptr<Information> Context::mpi_sort(Element *begin, Element *end) const
     {
         int res;
-        int rank, proc_num, total_n;
+        int rank, proc_num;
         std::unique_ptr<Information> information{};
-
+ 
         res = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         res = MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
         if (MPI_SUCCESS != res)
@@ -138,7 +137,6 @@ namespace sort
         {
             information = std::make_unique<Information>();
             information->length = end - begin;
-            total_n = end - begin;
             res = MPI_Comm_size(MPI_COMM_WORLD, &information->num_of_proc);
             if (MPI_SUCCESS != res)
             {
@@ -151,7 +149,6 @@ namespace sort
             }
             information->start = high_resolution_clock::now();
         }
-        MPI_Bcast(&total_n, 1, MPI_INT, 0, MPI_COMM_WORLD);
         {
 
             /// now starts the main sorting procedure
@@ -179,35 +176,37 @@ namespace sort
             MPI_Scatter(sendcnts.data(), 1, MPI_INT, &recv_buff_size, 1, MPI_INT, 0, MPI_COMM_WORLD); // send size;
 
             std::vector<Element> recv_data(recv_buff_size, 0); // create receive buffer
-            MPI_Scatterv(begin, sendcnts.data(), displs.data(), MPI_UINT64_T, recv_data.data(), recv_buff_size, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+            MPI_Scatterv(begin, sendcnts.data(), displs.data(), MPI_INT64_T, recv_data.data(), recv_buff_size, MPI_INT64_T, 0, MPI_COMM_WORLD);
             local_odd_even_sort(recv_data, recv_buff_size);
+#ifdef _TEST
             if (0 == rank)
             {
-
-                // printVector(recv_data);
-                // std::cout << "I am 0 and I am sorting." << std::endl;
-                std::sort(begin, end);
+                std::cout << "I am " << rank << " and I receive: ";
+                printVector(recv_data);
+                // std::sort(begin, end);
             }
             else
             {
-                // std::cout << "I am " << rank << " and I am doing nothing." << std::endl;
-                // printVector(recv_data);
-                // std::cout << "I receive length " << recv_buff_size << std::endl;
+                std::cout << "I am " << rank << " and I receive: ";
+                printVector(recv_data);
             }
+#endif
 
             std::vector<Element> recv_data2(recv_buff_size, 0);
 
-            for (int phase = 0; phase < proc_num+1; phase++)
+            for (int phase = 0; phase < proc_num + 1; phase++)
             {
                 MPI_Status status;
                 int partner = get_partner(phase, rank);
-                if (partner == -1 || partner == proc_num)
-                    partner = MPI_PROC_NULL;
+                if (partner == -1 || partner == proc_num )
+                    {
+                        partner = MPI_PROC_NULL;
+                    }
 
-                MPI_Sendrecv(recv_data.data(), recv_buff_size, MPI_UINT64_T, partner, 1, recv_data2.data(), recv_buff_size + 1, MPI_UINT64_T, partner, 1, MPI_COMM_WORLD, &status);
+                MPI_Sendrecv(recv_data.data(), recv_buff_size, MPI_INT64_T, partner, 1, recv_data2.data(), recv_buff_size + 1, MPI_INT64_T, partner, 1, MPI_COMM_WORLD, &status);
                 // printf("In phase %d : I'm rank %d, my partner is %d \n", phase, rank, partner);
-                int count;
-                MPI_Get_count(&status, MPI_UINT64_T, &count);
+                int count = 0;
+                MPI_Get_count(&status, MPI_INT64_T, &count);
                 // printf("In phase %d : I'm rank % d, I receive %d numbers ", phase, rank, count);
                 // printVector(recv_data2);
                 if (partner == MPI_PROC_NULL)
@@ -223,28 +222,11 @@ namespace sort
                     merge(recv_data, recv_data2, count, 0);
                 }
 
-                printf("In phase %d : I'm rank %d, after sort, I keep", phase, rank);
-                printVector(recv_data);
+                // printf("In phase %d : I'm rank %d, after sort, I keep: ", phase, rank);
+                // printVector(recv_data);
             }
-            std::vector<Element> final_res(total_n, 0);
-            // if (rank == 0) {
-            //     final_res = std::vector<Element> v1 (end-begin, 0);
-            // }
-            MPI_Gather(recv_data.data(), recv_data.size(), MPI_UINT64_T, final_res.data(), recv_data.size(), MPI_UINT64_T, 0, MPI_COMM_WORLD);
-            // MPI_Gatherv(recv_data.data(), recv_data.size(),  MPI_UINT64_T, final_res.data(), sendcnts.data(), displs.data(), MPI_UINT64_T, 0, MPI_COMM_WORLD);
-
-            if (rank == 0)
-            {
-                // printVector(final_res);
-                // for (int i =0 ;i < total_n; i++) {
-                //     *(begin+i) = final_res[i];
-                //     // std::cout << *(begin+i) << std::endl;
-                // }
-
-                
-            }
-
-
+           
+            MPI_Gatherv(recv_data.data(), recv_buff_size, MPI_INT64_T, begin, sendcnts.data(), displs.data(), MPI_INT64_T, 0, MPI_COMM_WORLD);
         }
 
         if (0 == rank)
