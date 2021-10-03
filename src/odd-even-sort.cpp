@@ -124,6 +124,7 @@ namespace sort
     {
         int res;
         int rank, proc_num;
+        std::vector<int> tmp = {1,0,0,0};
         std::unique_ptr<Information> information{};
  
         res = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -137,6 +138,7 @@ namespace sort
         {
             information = std::make_unique<Information>();
             information->length = end - begin;
+            
             res = MPI_Comm_size(MPI_COMM_WORLD, &information->num_of_proc);
             if (MPI_SUCCESS != res)
             {
@@ -157,9 +159,10 @@ namespace sort
             int recv_buff_size;
             std::vector<int> sendcnts;
             std::vector<int> displs;
+            int length;
             if (rank == 0)
             {
-                int length = end - begin;
+                length = end - begin;
                 int size = information->num_of_proc;
                 int remain = length % size;
                 int element_per_proc = length / size;
@@ -173,6 +176,9 @@ namespace sort
                 }
                 // sendcnts[size-1]+=length%size;
             }
+            MPI_Bcast( &length ,1, MPI_INT , 0 , MPI_COMM_WORLD);
+
+            // recv_buff_size = rank < length%proc_num ? length/proc_num+1: length/proc_num;
             MPI_Scatter(sendcnts.data(), 1, MPI_INT, &recv_buff_size, 1, MPI_INT, 0, MPI_COMM_WORLD); // send size;
 
             std::vector<Element> recv_data(recv_buff_size, 0); // create receive buffer
@@ -198,11 +204,27 @@ namespace sort
             {
                 MPI_Status status;
                 int partner = get_partner(phase, rank);
-                if (partner == -1 || partner == proc_num )
+                printf("%d's partner is %d", rank, partner);
+                
+                if (partner == -1 || partner == proc_num || tmp[partner] == 0)
                     {
-                        partner = MPI_PROC_NULL;
-                    }
+                        if (tmp[partner]==0) {
+                               int partner_size = partner_size < length % proc_num ? length/proc_num+1: length/proc_num;
 
+                printf("partner: %d, size: %d \n", partner, partner_size);
+                        }
+                        partner = MPI_PROC_NULL;
+                        continue;
+                    }
+             
+                // if (partner_size == 0) {
+                //     partner = MPI_PROC_NULL;
+                //         continue; 
+                // }
+                if (recv_buff_size==0) {
+                    rank = MPI_PROC_NULL;
+                    continue;
+                }
                 MPI_Sendrecv(recv_data.data(), recv_buff_size, MPI_INT64_T, partner, 1, recv_data2.data(), recv_buff_size + 1, MPI_INT64_T, partner, 1, MPI_COMM_WORLD, &status);
                 // printf("In phase %d : I'm rank %d, my partner is %d \n", phase, rank, partner);
                 int count = 0;
