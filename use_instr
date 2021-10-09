@@ -1,0 +1,5 @@
+salloc - Enter an interactive shell for MP sbatch - Submit a job
+scancel - Cancel a job
+squeue - View current queue
+sacct - View submission history
+sinfo -a - View node information scontrol show job [JOB_ID] - View information for the job

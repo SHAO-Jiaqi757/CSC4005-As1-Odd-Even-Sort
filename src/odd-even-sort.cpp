@@ -28,6 +28,7 @@ namespace sort
         }
         std::cout << '\n';
     }
+    
     int get_partner(int phase, int rank)
     {
         int p;
@@ -43,7 +44,6 @@ namespace sort
         return p;
     }
 
-    
     void local_odd_even_sort(std::vector<Element> &target, int size)
     {
 
@@ -128,10 +128,10 @@ namespace sort
                 }
             }
             MPI_Bcast(&length, 1, MPI_INT, 0, MPI_COMM_WORLD);
-                
-                // sendcnts[size-1]+=length%size;
 
-            recv_buff_size = rank < length%proc_num ? length/proc_num+1: length/proc_num;
+            // sendcnts[size-1]+=length%size;
+
+            recv_buff_size = rank < length % proc_num ? length / proc_num + 1 : length / proc_num;
             // MPI_Scatter(sendcnts.data(), 1, MPI_INT, &recv_buff_size, 1, MPI_INT, 0, MPI_COMM_WORLD); // send size;
 
             std::vector<Element> recv_data(recv_buff_size, 0); // create receive buffer
@@ -156,73 +156,53 @@ namespace sort
             Element nxt_partner;
             for (int phase = 0; phase < length; phase++)
             {
-                if (recv_buff_size == 0) continue;
-                int m = length / proc_num; int rem = length%proc_num;
-                int offset = rank < rem? (m+1)*rank : rem+rank*m;  // calculate each rank where the number (index) begin from.
-                int boundary = offset + recv_buff_size;  // boundary numbering of each rank;
+                if (recv_buff_size == 0)
+                    continue;
+                int m = length / proc_num;
+                int rem = length % proc_num;
+                int offset = rank < rem ? (m + 1) * rank : rem + rank * m; // calculate each rank where the number (index) begin from.
+                int boundary = offset + recv_buff_size;                    // boundary numbering of each rank;
                 // printf("%d rank's offset is %d \n", rank, offset);
-                
 
-                
-                for (int i=offset; i< offset+recv_buff_size; i++) {
+                for (int i = offset; i < offset + recv_buff_size; i++)
+                {
                     int partner = get_partner(phase, i);
-                    // printf("In phase %d, %d's partner is %d (boundary = %d) \n", phase, i, partner, offset+recv_buff_size);
-                    if (partner >= length || partner < 0) continue;
-                    if ( partner >= offset+recv_buff_size || partner < offset) {
+#ifdef _TEST
+                    printf("In phase %d, %d's partner is %d (boundary = %d) \n", phase, i, partner, offset + recv_buff_size);
+#endif
+                    if (partner >= length || partner < 0)
+                        continue;
+                    if (partner >= offset + recv_buff_size || partner < offset)
+                    {
                         // printf("overflow");
-                        Element senout = recv_data[i-offset];
-                        int sendrank = partner < offset ? rank-1: rank + 1;
-                        MPI_Sendrecv( &senout , 1 ,MPI_INT64_T , sendrank , 1 , &nxt_partner , 1, MPI_INT64_T ,sendrank , 1, MPI_COMM_WORLD , &status);
-                        // printf(">>> (%d) rank send to (%d) rank: send %d,  received %d \n", rank, sendrank, senout, nxt_partner);
-                        if ((rank > sendrank && recv_data[i-offset] < nxt_partner) || (rank < sendrank && recv_data[i-offset] > nxt_partner)) recv_data[i-offset] = nxt_partner;
+                        Element senout = recv_data[i - offset];
+                        int sendrank = partner < offset ? rank - 1 : rank + 1;
+                        MPI_Sendrecv(&senout, 1, MPI_INT64_T, sendrank, 1, &nxt_partner, 1, MPI_INT64_T, sendrank, 1, MPI_COMM_WORLD, &status);
+#ifdef _TEST
+                        printf(">>> (%d) rank send to (%d) rank: send %d,  received %d \n", rank, sendrank, senout, nxt_partner);
+#endif
+                        if ((rank > sendrank && recv_data[i - offset] < nxt_partner) || (rank < sendrank && recv_data[i - offset] > nxt_partner))
+                        {
+#ifdef _TEST
+                            printf("%d swap with %d \n", recv_data[i - offset], nxt_partner);
+#endif
+                            recv_data[i - offset] = nxt_partner;
+                        }
                         // else if (rank < sendrank && recv_data[i-offset] > nxt_partner)
                     }
 
-                    else if (i < partner && recv_data[i-offset] > recv_data[partner-offset]) {
-                        std::swap(recv_data[i-offset], recv_data[partner-offset]);
+                    else if (i < partner && recv_data[i - offset] > recv_data[partner - offset])
+                    {
+#ifdef _TEST
+                        printf("%d swap with %d \n", recv_data[i - offset], recv_data[partner - offset]);
+#endif
+                        std::swap(recv_data[i - offset], recv_data[partner - offset]);
                     }
-                   
-                    
+#ifdef _TEST
+                    printf("After phase %d, rank(%d) keeps: ", phase, rank);
+                    printVector(recv_data);
+#endif
                 }
-
-                // printf("I'm rank %d, after phase %d: ", rank, phase);
-                // printVector(recv_data);
-               
-
-            //     int partner_size = partner < length % proc_num ? length / proc_num + 1 : length / proc_num;
-            //     // if (tmp[partner] != partner_size)
-            //     //     printf("partner size: %d \n", partner_size);
-            //    if (partner == -1 || partner == proc_num ||partner_size==0)
-            //     {
-                   
-            //         partner = MPI_PROC_NULL;
-            //         continue;
-            //     }
-
-
-            //     // printf("partner: %d, size: %d \n", partner, partner_size);
-                
-                // MPI_Sendrecv(recv_data.data(), recv_buff_size, MPI_INT64_T, partner, 1, recv_data2.data(), recv_buff_size + 1, MPI_INT64_T, partner, 1, MPI_COMM_WORLD, &status);
-            //     // printf("In phase %d : I'm rank %d, my partner is %d \n", phase, rank, partner);
-            //     int count = 0;
-            //     MPI_Get_count(&status, MPI_INT64_T, &count);
-            //     // printf("In phase %d : I'm rank % d, I receive %d numbers ", phase, rank, count);
-            //     // printVector(recv_data2);
-            //     if (partner == MPI_PROC_NULL)
-            //         continue;
-            //     if (rank < partner)
-            //     {
-            //         // keep smaller ones
-            //         merge(recv_data, recv_data2, count, 1);
-            //     }
-            //     else
-            //     {
-            //         // keep larger ones
-            //         merge(recv_data, recv_data2, count, 0);
-            //     }
-
-            //     // printf("In phase %d : I'm rank %d, after sort, I keep: ", phase, rank);
-            //     // printVector(recv_data);
             }
 
             MPI_Gatherv(recv_data.data(), recv_buff_size, MPI_INT64_T, begin, sendcnts.data(), displs.data(), MPI_INT64_T, 0, MPI_COMM_WORLD);
@@ -231,6 +211,7 @@ namespace sort
         if (0 == rank)
         {
             information->end = high_resolution_clock::now();
+            print_information(*information, std::cout);
         }
         return information;
     }
