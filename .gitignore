@@ -1,1 +1,6 @@
 googletest/
+*.pdf
+*.docx
+.DS_Store
+build/
+.history/

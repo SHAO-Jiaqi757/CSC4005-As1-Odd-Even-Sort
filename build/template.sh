@@ -8,9 +8,9 @@
 
 tag="1.1"
 dt=$(date '+%d-%m-%Y-%H:%M:%S')
-export LD_LIBRARY_PATH=/pvfsmnt/119010256/HW/build/
+export LD_LIBRARY_PATH=/pvfsmnt/119010256/build/
 for i in {1..64}
 do
     echo "using $i cores"
-    mpirun -n $i /pvfsmnt/119010256/HW/build/gtest_sort  | tee /pvfsmnt/119010256/HW/logs/${tag}-${dt}.log
+    mpirun -n $i /pvfsmnt/119010256/build/gtest_sort >> /pvfsmnt/119010256/logs/${tag}-${dt}.log
 done

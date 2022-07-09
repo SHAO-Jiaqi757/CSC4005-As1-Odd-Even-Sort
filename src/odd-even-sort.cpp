@@ -44,35 +44,6 @@ namespace sort
         return p;
     }
 
-    void local_odd_even_sort(std::vector<Element> &target, int size)
-    {
-
-        //    int size = target.size();
-        for (int phase = 0; phase < size; phase++)
-        {
-            if (phase % 2 == 0) // even phase;
-            {
-                for (int i = 1; i < size; i += 2)
-                {
-                    // swap target[i-1] with target[i]
-                    // swap(target, i, i - 1);
-                    if (target[i - 1] > target[i])
-                        std::swap(target[i - 1], target[i]);
-                }
-            }
-            else
-            {
-                for (int i = 2; i < size; i += 2)
-                {
-                    // swap(target, i, i - 1);
-                    if (target[i - 1] > target[i])
-                        std::swap(target[i - 1], target[i]);
-                }
-            }
-        }
-
-        return;
-    }
     std::unique_ptr<Information> Context::mpi_sort(Element *begin, Element *end) const
     {
         int res;
@@ -136,7 +107,6 @@ namespace sort
 
             std::vector<Element> recv_data(recv_buff_size, 0); // create receive buffer
             MPI_Scatterv(begin, sendcnts.data(), displs.data(), MPI_INT64_T, recv_data.data(), recv_buff_size, MPI_INT64_T, 0, MPI_COMM_WORLD);
-            // local_odd_even_sort(recv_data, recv_buff_size);
 #ifdef _TEST
             if (0 == rank)
             {

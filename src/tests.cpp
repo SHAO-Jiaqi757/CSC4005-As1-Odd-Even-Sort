@@ -161,8 +161,11 @@ void gen_data_vector( std::vector<Element> &data, long size )
 TEST(OddEvenSort, Range)
 {
     int rank;
-    std::vector<long> data_sizes = {10, 50, 100, 200, 500, 800, 1000, 1500, 1800, 2200, 5000, 8000, 10000, 20000, 25000, 50000};
-    
+    std::vector<long> data_sizes = {};
+    // std::vector<long> data_sizes = {10, 50, 100, 200, 500, 800, 1000, 1500, 1800, 2200, 5000, 8000, 10000, 20000, 25000, 50000};
+   for (int i = 30000; i<50000; i+=1000) {
+       data_sizes.push_back(i);
+   }
     // std::vector<long> data_sizes = {10, 50, 100, 200};
     uint64_t cases = data_sizes.size();
     // uint64_t increment = 100;
@@ -185,6 +188,7 @@ TEST(OddEvenSort, Range)
                 std::vector<Element> b = i;
                 context->mpi_sort(a.data(), a.data() + a.size());
                 std::sort(b.data(), b.data() + b.size());
+                EXPECT_EQ(a, b);
             }
             
         }

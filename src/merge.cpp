@@ -175,10 +175,10 @@ namespace sort
                 }
             }
             MPI_Bcast(&length, 1, MPI_INT, 0, MPI_COMM_WORLD);
-                
-                // sendcnts[size-1]+=length%size;
 
-            recv_buff_size = rank < length%proc_num ? length/proc_num+1: length/proc_num;
+            // sendcnts[size-1]+=length%size;
+
+            recv_buff_size = rank < length % proc_num ? length / proc_num + 1 : length / proc_num;
             // MPI_Scatter(sendcnts.data(), 1, MPI_INT, &recv_buff_size, 1, MPI_INT, 0, MPI_COMM_WORLD); // send size;
 
             std::vector<Element> recv_data(recv_buff_size, 0); // create receive buffer
@@ -198,54 +198,55 @@ namespace sort
             }
 #endif
 
-            std::vector<Element> recv_data2(recv_buff_size, 0);
+            
 
             for (int phase = 0; phase < proc_num + 1; phase++)
             {
+                if (recv_buff_size == 0) // none received
+                {
+                    // rank = MPI_PROC_NULL;
+                    continue;
+                }
                 MPI_Status status;
                 int partner = get_partner(phase, rank);
                 // printf("%d's partner is %d \n", rank, partner);
-                
-                int partner_size = partner < length % proc_num ? length / proc_num + 1 : length / proc_num;
-                // if (tmp[partner] != partner_size)
-                //     printf("partner size: %d \n", partner_size);
-               if (partner == -1 || partner == proc_num ||partner_size==0)
+                if (partner == -1 || partner == proc_num ) // exceed the range
                 {
-                   
-                    partner = MPI_PROC_NULL;
+
+                    // partner = MPI_PROC_NULL;
                     continue;
                 }
+                int partner_size = partner < length % proc_num ? length / proc_num + 1 : length / proc_num;
+                if (partner_size <= 0) continue;
+                // if (tmp[partner] != partner_size)
+                //     printf("partner size: %d \n", partner_size);
 
 
                 // printf("partner: %d, size: %d \n", partner, partner_size);
-                
 
                 // if (recv_buff_size == 0)
                 // {
                 //     rank = MPI_PROC_NULL;
                 //     continue;
                 // }
-                if (recv_buff_size==0) {
-                    // rank = MPI_PROC_NULL;
-                    continue;
-                }
-                MPI_Sendrecv(recv_data.data(), recv_buff_size, MPI_INT64_T, partner, 1, recv_data2.data(), recv_buff_size + 1, MPI_INT64_T, partner, 1, MPI_COMM_WORLD, &status);
+                std::vector<Element> recv_data2(partner_size, 0);
+                MPI_Sendrecv(recv_data.data(), recv_buff_size, MPI_INT64_T, partner, 1, recv_data2.data(), partner_size, MPI_INT64_T, partner, 1, MPI_COMM_WORLD, &status);
                 // printf("In phase %d : I'm rank %d, my partner is %d \n", phase, rank, partner);
-                int count = 0;
-                MPI_Get_count(&status, MPI_INT64_T, &count);
+                // int count = 0;
+                // MPI_Get_count(&status, MPI_INT64_T, &count);
                 // printf("In phase %d : I'm rank % d, I receive %d numbers ", phase, rank, count);
                 // printVector(recv_data2);
-                if (partner == MPI_PROC_NULL)
-                    continue;
+                // if (partner == MPI_PROC_NULL)
+                //     continue;
                 if (rank < partner)
                 {
                     // keep smaller ones
-                    merge(recv_data, recv_data2, count, 1);
+                    merge(recv_data, recv_data2, partner_size, 1);
                 }
                 else
                 {
                     // keep larger ones
-                    merge(recv_data, recv_data2, count, 0);
+                    merge(recv_data, recv_data2, partner_size, 0);
                 }
 
                 // printf("In phase %d : I'm rank %d, after sort, I keep: ", phase, rank);
@@ -258,6 +259,7 @@ namespace sort
         if (0 == rank)
         {
             information->end = high_resolution_clock::now();
+            print_information(*information, std::cout);
         }
         return information;
     }
